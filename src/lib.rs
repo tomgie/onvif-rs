@@ -1,4 +1,3 @@
-pub mod soap;
 mod error;
 mod discovery;
 
