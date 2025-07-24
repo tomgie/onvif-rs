@@ -1,12 +1,10 @@
 use quick_xml::se;
 use crate::error::OnvifError;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use uuid::Uuid;
 
 pub const MULTICAST_IPV4_ADDRESS: &str = "239.255.255.250";
 pub const MULTICAST_PORT: u16 = 3702;
-
-pub const PROBE_MESSAGE_TYPE: &str = "d:NetworkVideoTransmitter";
 
 #[derive(Debug, Serialize)]
 #[serde(rename = "s:Envelope")]
@@ -15,6 +13,8 @@ pub struct ProbeEnvelope {
     pub xmlns_s: String,
     #[serde(rename = "@xmlns:a")]
     pub xmlns_a: String,
+    #[serde(rename = "@xmlns:wsdd")]
+    pub xmlns_wsdd: String,
     #[serde(rename = "s:Header")]
     pub header: ProbeHeader,
     #[serde(rename = "s:Body")]
@@ -33,62 +33,38 @@ pub struct ProbeHeader {
 
 #[derive(Debug, Serialize)]
 pub struct ProbeBody {
-    #[serde(rename = "d:Probe")]
+    #[serde(rename = "wsdd:Probe")]
     pub probe: Probe,
 }
 
 #[derive(Debug, Serialize)]
 pub struct Probe {
-    #[serde(rename = "@xmlns:d")]
-    pub xmlns_d: String,
-    #[serde(rename = "d:Types")]
+    #[serde(rename = "wsdd:Types")]
     pub types: String,
-}
-
-#[derive(Debug, Deserialize, PartialEq)]
-#[serde(rename = "Envelope")]
-pub struct ProbeMatchEnvelope {
-    #[serde(rename = "Header")]
-    pub header: ProbeMatchHeader,
-    #[serde(rename = "Body")]
-    pub body: ProbeMatchBody,
-}
-
-#[derive(Debug, Deserialize, PartialEq)]
-pub struct ProbeMatchHeader {
-    #[serde(rename = "RelatesTo")]
-    pub relates_to: String,
-}
-
-#[derive(Debug, Deserialize, PartialEq)]
-pub struct ProbeMatchBody {
-    #[serde(rename = "ProbeMatches")]
-    pub probe_matches: ProbeMatches,
-}
-
-#[derive(Debug, Deserialize, PartialEq)]
-pub struct ProbeMatches {
-    #[serde(rename = "ProbeMatch", default)]
-    pub probe_match: Vec<ProbeMatch>,
-}
-
-#[derive(Debug, Deserialize, PartialEq, Clone)]
-pub struct ProbeMatch {
-    #[serde(rename = "Types")]
-    pub types: String,
-    #[serde(rename = "Scopes")]
+    #[serde(rename = "wsdd:Scopes")]
     pub scopes: String,
-    #[serde(rename = "XAddrs")]
+}
+
+#[derive(Debug, PartialEq, Clone, Default)]
+pub struct EndpointReference {
+    pub address: String,
+}
+
+#[derive(Debug, PartialEq, Clone, Default)]
+pub struct ProbeMatch {
+    pub endpoint_reference: EndpointReference,
+    pub types: String,
+    pub scopes: String,
     pub xaddrs: String,
-    #[serde(rename = "MessageID")]
-    pub message_id: String,
+    pub metadata_version: u32,
 }
 
 pub fn build_probe_message() -> Result<String, OnvifError> {
-    let message_id = format!("uuid:{}", Uuid::new_v4());
+    let message_id = format!("urn:uuid:{}", Uuid::new_v4());
     let probe = ProbeEnvelope {
         xmlns_s: "http://www.w3.org/2003/05/soap-envelope".to_string(),
         xmlns_a: "http://schemas.xmlsoap.org/ws/2004/08/addressing".to_string(),
+        xmlns_wsdd: "http://schemas.xmlsoap.org/ws/2005/04/discovery".to_string(),
         header: ProbeHeader {
             action: "http://schemas.xmlsoap.org/ws/2005/04/discovery/Probe".to_string(),
             message_id: message_id.clone(),
@@ -96,8 +72,8 @@ pub fn build_probe_message() -> Result<String, OnvifError> {
         },
         body: ProbeBody {
             probe: Probe {
-                xmlns_d: "http://schemas.xmlsoap.org/ws/2005/04/discovery".to_string(),
-                types: PROBE_MESSAGE_TYPE.to_string(),
+                types: "tdn:NetworkVideoTransmitter".to_string(),
+                scopes: "onvif://www.onvif.org/Profile/Streaming".to_string(),
             },
         },
     };

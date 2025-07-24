@@ -1,10 +1,10 @@
-mod error;
-mod discovery;
+pub mod discovery;
+pub mod error;
 
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
     use crate::discovery::client::discover;
+    use std::time::Duration;
 
     #[tokio::test]
     async fn it_works() {

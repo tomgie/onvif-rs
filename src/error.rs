@@ -7,7 +7,7 @@ pub enum OnvifError {
 
     #[error("XML serialization error: {0}")]
     XmlSerialization(#[from] quick_xml::se::SeError),
-    
+
     #[error("SOAP Fault: {code} - {reason}")]
     SoapFault {
         code: String,
